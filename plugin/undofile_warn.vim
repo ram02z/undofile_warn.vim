@@ -74,6 +74,28 @@ fun! s:undofile_enable(st) abort
 	endif
 endfun
 
+fun! s:Real_seq(inner, outer) abort
+  let node = a:outer
+  for i in a:inner
+    if has_key(i, 'alt')
+      call s:Real_seq(i.alt, deepcopy(node))
+    endif
+    if has_key(i, 'curhead')
+      return {'seq': node.seq}
+    endif
+    let node.seq  = i.seq
+  endfor
+endfun
+
+fun! s:Get_seq(tree) abort
+  let query = s:Real_seq(a:tree.entries, {'seq': 0})
+  if (type(query) == 4)
+    return query.seq
+  else
+    return undotree()['seq_cur']
+  endif
+endfun
+
 fun! undofile_warn#undo() abort
 	" :UndofileEnabled no
 	if !s:enabled | return 'u' | endif
@@ -84,7 +106,7 @@ fun! undofile_warn#undo() abort
 	" Don't do anything if we can't modify the buffer or there's no filename
 	if !&l:modifiable || expand('%') == '' | return 'u' | endif
 
-	let l:cur = undotree()['seq_cur']
+	let l:cur = s:Get_seq(undotree())
 
 	" Undoing before we've hit the undofile
 	if b:undofile_warn_saved < l:cur | return 'u' | endif
@@ -136,11 +158,11 @@ fun! undofile_warn#redo() abort
 		let b:undofile_warn_warned = []
 	endif
 endfun
-	
+
 
 " Do something sane when an error occurred.
 fun! s:check_valid_file() abort
-	" E823: Not an undo file: /home/martin/.vim/tmp/undo/%home%martin%src%qutebrowser%tests%utils%test_urlutils.py 
+	" E823: Not an undo file: /home/martin/.vim/tmp/undo/%home%martin%src%qutebrowser%tests%utils%test_urlutils.py
 	" I've sometimes had it happen that after a crash (Vim or system) the undo
 	" file is completely empty, in which case it makes no sense keeping it.
 	"
