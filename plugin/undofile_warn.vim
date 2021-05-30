@@ -19,13 +19,14 @@ let s:enabled = 1
 "##########################################################
 " The default settings
 
-set undofile
+" FIX: Messes with vim-undodir-tree
+" set undofile
 
 " When loading a file, store the current undo sequence
 augroup undofile_warn
 	autocmd!
 	autocmd BufReadPost,BufCreate,BufNewFile *
-		\  let b:undofile_warn_saved = undotree()['seq_cur']
+		\  let b:undofile_warn_saved = s:Get_seq(undotree())
 		\| let b:undofile_warn_warned = []
 	autocmd! InsertEnter * let b:undofile_warn_warned = []
 	"autocmd BufReadPost * call s:check_valid_file()
@@ -108,6 +109,9 @@ fun! undofile_warn#undo() abort
 
 	let l:cur = s:Get_seq(undotree())
 
+  " Last undo
+  if l:cur == 0 | return 'u' | endif
+
 	" Undoing before we've hit the undofile
 	if b:undofile_warn_saved < l:cur | return 'u' | endif
 
@@ -154,7 +158,7 @@ fun! undofile_warn#redo() abort
 	if !&l:modifiable || expand('%') == '' | return | endif
 
 	" Reset the warning flag
-	if !empty(b:undofile_warn_warned) && undotree()['seq_cur'] >= b:undofile_warn_saved
+	if !empty(b:undofile_warn_warned) && s:Get_seq(undotree()) >= b:undofile_warn_saved
 		let b:undofile_warn_warned = []
 	endif
 endfun
